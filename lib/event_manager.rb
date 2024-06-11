@@ -47,6 +47,16 @@ def clean_phone_number(phone_number)
   return cleaned_number.gsub(/^([0-9]{3})([0-9]{3})/, '(\1)' + ' \2-') 
 end
 
+def get_registration_hours(date, popular_hours)
+  hour = DateTime.strptime(date, '%m/%d/%y %H:%M').strftime('%H').to_sym
+  if popular_hours.has_key?(hour)
+    popular_hours[hour] += 1
+  else
+    popular_hours[hour] = 1
+  end
+return popular_hours
+end
+
 puts 'EventManager initialized.'
 
 contents = CSV.open(
@@ -57,6 +67,7 @@ contents = CSV.open(
 
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
+popular_hours = {}
 
 contents.each do |row|
   id = row[0]
@@ -64,9 +75,11 @@ contents.each do |row|
   zipcode = clean_zipcode(row[:zipcode])
   legislators = legislators_by_zipcode(zipcode)
   phone = clean_phone_number(row[:homephone])
+  popular_hours = get_registration_hours(row[:regdate], popular_hours)
   
   puts phone
-  
+
   #form_letter = erb_template.result(binding)
   #save_thank_you_letter(id,form_letter)
 end
+puts popular_hours.sort_by {|hour, registrants| -registrants}.to_h
